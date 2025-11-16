@@ -1,0 +1,91 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import ArticleCard from '../../components/ArticleCard.astro';
+import Pagination from '../../components/Pagination.astro';
+
+export async function getStaticPaths() {
+  const listResponse = await fetch(new URL('/articles/list.json', 'http://localhost:4321'));
+  const articleIds: string[] = await listResponse.json();
+  
+  // 全記事を読み込んでタグを収集
+  const articles = await Promise.all(
+    articleIds.map(async (id) => {
+      const res = await fetch(new URL(`/articles/${id}.json`, 'http://localhost:4321'));
+      return await res.json();
+    })
+  );
+  
+  // タグのリストを作成
+  const tags = new Set<string>();
+  articles.forEach(article => {
+    if (article.tags) {
+      article.tags.forEach((tag: string) => tags.add(tag));
+    }
+  });
+  
+  return Array.from(tags).map(tag => ({
+    params: { tag },
+  }));
+}
+
+const { tag } = Astro.params;
+
+// 記事一覧を取得
+const listResponse = await fetch(new URL('/articles/list.json', Astro.site || 'http://localhost:4321'));
+const articleIds: string[] = await listResponse.json();
+
+// 全記事を読み込む
+const allArticles = await Promise.all(
+  articleIds.map(async (id) => {
+    const res = await fetch(new URL(`/articles/${id}.json`, Astro.site || 'http://localhost:4321'));
+    return await res.json();
+  })
+);
+
+// 該当タグの記事をフィルタ
+const filteredArticles = allArticles.filter(article => 
+  article.tags && article.tags.includes(tag)
+);
+
+// ページネーション
+const articlesPerPage = 4;
+const currentPage = 1;
+const start = 0;
+const end = articlesPerPage;
+const articlesToShow = filteredArticles.slice(start, end);
+
+const totalPages = Math.ceil(filteredArticles.length / articlesPerPage);
+---
+
+<Layout title={`タグ: ${tag} - 私の日記`}>
+  <Header />
+  
+  <div class="container">
+    <Sidebar />
+    
+    <div class="main-content">
+      <div id="filterInfo">
+        <div class="filter-info">
+          <strong>タグ: {tag}</strong> の記事
+          <a href="/" class="clear-filter">フィルタをクリア</a>
+        </div>
+      </div>
+      
+      <main id="content">
+        {articlesToShow.map(article => (
+          <ArticleCard article={article} filterType="tag" filterValue={tag} />
+        ))}
+      </main>
+      
+      {totalPages > 1 && (
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          baseUrl={`/tag/${tag}/page/`}
+        />
+      )}
+    </div>
+  </div>
+</Layout>

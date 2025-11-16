@@ -1,0 +1,74 @@
+---
+// 記事IDからアーカイブデータを生成
+const response = await fetch(new URL('/articles/list.json', Astro.site || 'http://localhost:4321'));
+const articleIds: string[] = await response.json();
+
+const archiveData: Record<string, Record<string, number>> = {};
+
+articleIds.forEach(id => {
+  const year = id.substring(0, 4);
+  const month = id.substring(4, 6);
+  
+  if (!archiveData[year]) {
+    archiveData[year] = {};
+  }
+  if (!archiveData[year][month]) {
+    archiveData[year][month] = 0;
+  }
+  archiveData[year][month]++;
+});
+
+const years = Object.keys(archiveData).sort((a, b) => b.localeCompare(a));
+---
+
+<aside class="sidebar">
+  <h3>アーカイブ</h3>
+  <select class="archive-select" id="yearSelect">
+    <option value="">年を選択</option>
+    {years.map(year => {
+      const totalCount = Object.values(archiveData[year]).reduce((a, b) => a + b, 0);
+      return <option value={year}>{year}年 ({totalCount}件)</option>
+    })}
+  </select>
+  <ul class="archive-list" id="archiveList"></ul>
+</aside>
+
+<script define:vars={{ archiveData }}>
+  function initArchive() {
+    const yearSelect = document.getElementById('yearSelect');
+    const archiveList = document.getElementById('archiveList');
+
+    if (!yearSelect || !archiveList) return;
+
+    // 既存のイベントリスナーをクリア
+    const newYearSelect = yearSelect.cloneNode(true);
+    yearSelect.parentNode.replaceChild(newYearSelect, yearSelect);
+
+    newYearSelect.addEventListener('change', (e) => {
+      const selectedYear = e.target.value;
+      
+      if (!selectedYear) {
+        archiveList.innerHTML = '';
+        return;
+      }
+
+      const months = archiveData[selectedYear];
+      const sortedMonths = Object.keys(months).sort((a, b) => b.localeCompare(a));
+      
+      archiveList.innerHTML = sortedMonths.map(month => `
+        <li>
+          <a href="/archive/${selectedYear}${month}">
+            <span>${parseInt(month)}月</span>
+            <span class="count">(${months[month]}件)</span>
+          </a>
+        </li>
+      `).join('');
+    });
+  }
+
+  // 初回実行
+  initArchive();
+
+  // View Transitions対応：ページ遷移後も再実行
+  document.addEventListener('astro:page-load', initArchive);
+</script>

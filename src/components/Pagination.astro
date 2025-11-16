@@ -1,0 +1,115 @@
+---
+interface Props {
+  currentPage: number;
+  totalPages: number;
+  baseUrl: string;
+}
+
+const { currentPage, totalPages, baseUrl } = Astro.props;
+
+function generatePageNumbers(current: number, total: number): (number | string)[] {
+  const pages: (number | string)[] = [];
+  
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) {
+      pages.push(i);
+    }
+  } else {
+    if (current <= 3) {
+      for (let i = 1; i <= 4; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(total);
+    } else if (current >= total - 2) {
+      pages.push(1);
+      pages.push('...');
+      for (let i = total - 3; i <= total; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      pages.push('...');
+      for (let i = current - 1; i <= current + 1; i++) {
+        pages.push(i);
+      }
+      pages.push('...');
+      pages.push(total);
+    }
+  }
+  
+  return pages;
+}
+
+const pageNumbers = generatePageNumbers(currentPage, totalPages);
+---
+
+<div class="pagination">
+  {pageNumbers.map(pageNum => (
+    pageNum === '...' ? (
+      <span class="page-number ellipsis">...</span>
+    ) : (
+      <a 
+        href={`${baseUrl}${pageNum}`}
+        class={`page-number ${pageNum === currentPage ? 'active' : ''}`}
+      >
+        {pageNum}
+      </a>
+    )
+  ))}
+</div>
+
+<style>
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin-top: 40px;
+    flex-wrap: wrap;
+  }
+
+  .page-number {
+    padding: 6px 10px;
+    background: #2a2218;
+    color: #e0c9a8;
+    border: 1px solid #6b5842;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 13px;
+    min-width: 34px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .page-number:hover:not(.active):not(.ellipsis) {
+    background: #3d3228;
+    border-color: #d4a574;
+    box-shadow: 0 0 8px rgba(212, 165, 116, 0.3);
+  }
+
+  .page-number.active {
+    background: #d4a574;
+    color: #1a1612;
+    border-color: #d4a574;
+    font-weight: bold;
+    cursor: default;
+  }
+
+  .page-number.ellipsis {
+    background: transparent;
+    border: none;
+    cursor: default;
+    color: #9a8264;
+  }
+
+  .page-number.ellipsis:hover {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+</style>

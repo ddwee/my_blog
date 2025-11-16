@@ -1,0 +1,115 @@
+---
+import Layout from '../../../../layouts/Layout.astro';
+import Header from '../../../../components/Header.astro';
+import Sidebar from '../../../../components/Sidebar.astro';
+import ArticleCard from '../../../../components/ArticleCard.astro';
+import Pagination from '../../../../components/Pagination.astro';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+export async function getStaticPaths() {
+  try {
+    // ローカルのJSONファイルからデータを読み込む
+    const articlesPath = join(process.cwd(), 'public', 'articles', 'list.json');
+    const articleIds: string[] = JSON.parse(readFileSync(articlesPath, 'utf-8'));
+    
+    // 年月ごとに記事をグループ化
+    const yearMonthMap = new Map<string, string[]>();
+    articleIds.forEach(id => {
+      const yearMonth = id.substring(0, 6);
+      if (!yearMonthMap.has(yearMonth)) {
+        yearMonthMap.set(yearMonth, []);
+      }
+      yearMonthMap.get(yearMonth)!.push(id);
+    });
+    
+    const articlesPerPage = 4;
+    const paths: any[] = [];
+    
+    // 各年月のページを生成
+    yearMonthMap.forEach((ids, yearMonth) => {
+      const totalPages = Math.ceil(ids.length / articlesPerPage);
+      for (let i = 1; i <= totalPages; i++) {
+        paths.push({
+          params: { yearMonth, page: String(i) },
+        });
+      }
+    });
+    
+    return paths;
+  } catch (error) {
+    console.error('Error in getStaticPaths:', error);
+    return [];
+  }
+}
+
+const { yearMonth, page } = Astro.params;
+const currentPage = parseInt(page || '1');
+
+let articles = [];
+let totalPages = 1;
+let year = '2024';
+let month = 1;
+
+try {
+  // ローカルファイルから記事一覧を取得
+  const articlesPath = join(process.cwd(), 'public', 'articles', 'list.json');
+  const articleIds: string[] = JSON.parse(readFileSync(articlesPath, 'utf-8'));
+
+  // 該当する年月の記事をフィルタ
+  const filteredIds = articleIds.filter(id => id.startsWith(yearMonth));
+
+  // ページネーション
+  const articlesPerPage = 4;
+  const start = (currentPage - 1) * articlesPerPage;
+  const end = start + articlesPerPage;
+  const idsToShow = filteredIds.slice(start, end);
+
+  // 各記事のデータをローカルファイルから読み込む
+  articles = await Promise.all(
+    idsToShow.map(async (id) => {
+      const articlePath = join(process.cwd(), 'public', 'articles', `${id}.json`);
+      return JSON.parse(readFileSync(articlePath, 'utf-8'));
+    })
+  );
+
+  totalPages = Math.ceil(filteredIds.length / articlesPerPage);
+
+  // 年月を表示用にフォーマット
+  year = yearMonth.substring(0, 4);
+  month = parseInt(yearMonth.substring(4, 6));
+} catch (error) {
+  console.error('Error loading articles:', error);
+}
+---
+
+<Layout title={`${year}年${month}月のアーカイブ - 私の日記`}>
+  <Header />
+  
+  <div class="container">
+    <Sidebar />
+    
+    <div class="main-content">
+      <div id="filterInfo">
+        <div class="filter-info">
+          <strong>{year}年{month}月</strong> の記事
+          <a href="/" class="clear-filter">フィルタをクリア</a>
+        </div>
+      </div>
+      
+      <main id="content">
+        {articles.map(article => (
+          <ArticleCard article={article} filterType="archive" filterValue={yearMonth} />
+        ))}
+      </main>
+      
+      {totalPages > 1 && (
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          baseUrl={`/archive/${yearMonth}/page/`}
+        />
+      )}
+    </div>
+  </div>
+</Layout>

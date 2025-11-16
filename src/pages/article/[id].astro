@@ -1,0 +1,122 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+import Sidebar from '../../components/Sidebar.astro';
+
+export async function getStaticPaths() {
+  const response = await fetch(new URL('/articles/list.json', 'http://localhost:4321'));
+  const articleIds: string[] = await response.json();
+  
+  return articleIds.map(id => ({
+    params: { id },
+  }));
+}
+
+//記事データと記事リストの取得
+const { id } = Astro.params;
+const [articleResponse, listResponse] = await Promise.all([
+  fetch(new URL(`/articles/${id}.json`, Astro.site || 'http://localhost:4321')),
+  fetch(new URL('/articles/list.json', Astro.site || 'http://localhost:4321'))
+]);
+
+const [article, articleIds] = await Promise.all([
+  articleResponse.json(),
+  listResponse.json()
+]);
+
+const currentIndex = articleIds.indexOf(id);
+const nextId = currentIndex > 0 ? articleIds[currentIndex - 1] : null;
+const prevId = currentIndex < articleIds.length - 1 ? articleIds[currentIndex + 1] : null;
+
+let nextArticle = null;
+let prevArticle = null;
+
+if (nextId) {
+  const nextResponse = await fetch(new URL(`/articles/${nextId}.json`, Astro.site || 'http://localhost:4321'));
+  nextArticle = await nextResponse.json();
+}
+
+if (prevId) {
+  const prevResponse = await fetch(new URL(`/articles/${prevId}.json`, Astro.site || 'http://localhost:4321'));
+  prevArticle = await prevResponse.json();
+}
+---
+
+<Layout title={`${article.title} - 私の日記`}>
+  <Header />
+  
+  <div class="container">
+    <Sidebar />
+    
+    <div class="main-content">
+      <main>
+        <article>
+          <div class="date">{article.date}</div>
+          <h2>{article.title}</h2>
+          <div class="meta">
+            <a href={`/category/${article.category}`} class="category">{article.category}</a>
+            {article.tags && (
+              <div class="tags">
+                {article.tags.map((tag: string) => (
+                  <a href={`/tag/${tag}`} class="tag">#{tag}</a>
+                ))}
+              </div>
+            )}
+          </div>
+          <div class="article-content" set:html={article.content.replace(/\n/g, '<br>')} />
+        </article>
+
+        <!-- 前後の記事ナビゲーション + ホームボタン -->
+        <nav class="article-nav">
+          {prevArticle ? (
+            <a href={`/article/${prevArticle.id}`} class="article-nav-item prev">
+              <span class="nav-label">← 過去の記事</span>
+              <span class="nav-title">{prevArticle.title}</span>
+            </a>
+          ) : (
+            <div class="article-nav-item-spacer"></div>
+          )}
+          
+          <a href="/" class="home-button" id="homeButton" title="記事一覧に戻る">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+          </a>
+
+          {nextArticle ? (
+            <a href={`/article/${nextArticle.id}`} class="article-nav-item next">
+              <span class="nav-label">新しい記事 →</span>
+              <span class="nav-title">{nextArticle.title}</span>
+            </a>
+          ) : (
+            <div class="article-nav-item-spacer"></div>
+          )}
+        </nav>
+      </main>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  function initHomeButton() {
+    const homeButton = document.getElementById('homeButton');
+    if (!homeButton) return;
+
+    // 現在のURLが記事詳細ページの場合
+    const currentPath = window.location.pathname;
+    if (currentPath.startsWith('/article/')) {
+      // 保存されたURLがあり、それが記事一覧ページの場合のみ使う
+      const returnUrl = sessionStorage.getItem('returnUrl');
+      if (returnUrl && !returnUrl.startsWith('/article/')) {
+        homeButton.setAttribute('href', returnUrl);
+      } else {
+        // 記事一覧ページのURLがない場合はトップページに戻す
+        homeButton.setAttribute('href', '/');
+      }
+    }
+  }
+
+  initHomeButton();
+  document.addEventListener('astro:page-load', initHomeButton);
+</script>

@@ -1,0 +1,57 @@
+---
+interface Props {
+  article: {
+    id: string;
+    date: string;
+    title: string;
+    category: string;
+    tags?: string[];
+    preview: string;
+  };
+  filterType?: string;
+  filterValue?: string;
+}
+
+const { article, filterType, filterValue } = Astro.props;
+---
+
+<article>
+  <div class="date">{article.date}</div>
+  <h2><a href={`/article/${article.id}`} class="article-link" data-article-id={article.id} data-filter-type={filterType} data-filter-value={filterValue}>{article.title}</a></h2>
+  <div class="meta">
+    <a href={`/category/${article.category}`} class="category">{article.category}</a>
+    {article.tags && (
+      <div class="tags">
+        {article.tags.map(tag => (
+          <a href={`/tag/${tag}`} class="tag">#{tag}</a>
+        ))}
+      </div>
+    )}
+  </div>
+</article>
+
+<script>
+  function initArticleLinks() {
+    document.querySelectorAll('.article-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        // 現在のURLを保存
+        sessionStorage.setItem('returnUrl', window.location.pathname);
+        
+        // フィルタ情報も保存
+        const filterType = link.getAttribute('data-filter-type');
+        const filterValue = link.getAttribute('data-filter-value');
+        
+        if (filterType && filterValue) {
+          sessionStorage.setItem('filterType', filterType);
+          sessionStorage.setItem('filterValue', filterValue);
+        } else {
+          sessionStorage.removeItem('filterType');
+          sessionStorage.removeItem('filterValue');
+        }
+      });
+    });
+  }
+
+  initArticleLinks();
+  document.addEventListener('astro:page-load', initArticleLinks);
+</script>
