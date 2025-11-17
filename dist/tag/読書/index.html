@@ -1,0 +1,49 @@
+<!DOCTYPE html><html lang="ja"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="astro-view-transitions-enabled" content="true"><meta name="astro-view-transitions-fallback" content="animate"><script type="module" src="/_astro/ClientRouter.astro_astro_type_script_index_0_lang.elfUsALL.js"></script><link rel="icon" type="image/svg+xml" href="/favicon.svg"><title>タグ: 読書 - 私の日記</title><link rel="stylesheet" href="/_astro/_page_.BcLkYXD5.css">
+<style>.pagination[data-astro-cid-d776pwuy]{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:40px;flex-wrap:wrap}.page-number[data-astro-cid-d776pwuy]{padding:6px 10px;background:#2a2218;color:#e0c9a8;border:1px solid #6b5842;border-radius:5px;cursor:pointer;transition:all .3s ease;font-size:13px;min-width:34px;text-align:center;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.page-number[data-astro-cid-d776pwuy]:hover:not(.active):not(.ellipsis){background:#3d3228;border-color:#d4a574;box-shadow:0 0 8px #d4a5744d}.page-number[data-astro-cid-d776pwuy].active{background:#d4a574;color:#1a1612;border-color:#d4a574;font-weight:700;cursor:default}.page-number[data-astro-cid-d776pwuy].ellipsis{background:transparent;border:none;cursor:default;color:#9a8264}.page-number[data-astro-cid-d776pwuy].ellipsis:hover{background:transparent;border:none;box-shadow:none}
+</style></head> <body>  <header> <h1><a href="/">私の日記</a></h1> <p>日々の出来事を綴ります</p> </header> <div class="container"> <aside class="sidebar"> <h3>アーカイブ</h3> <select class="archive-select" id="yearSelect"> <option value="">年を選択</option> <option value="2025">2025年 (6件)</option><option value="2024">2024年 (3件)</option> </select> <ul class="archive-list" id="archiveList"></ul> </aside> <script>(function(){const archiveData = {"2024":{"09":1,"08":1,"07":1},"2025":{"10":6}};
+
+  function initArchive() {
+    const yearSelect = document.getElementById('yearSelect');
+    const archiveList = document.getElementById('archiveList');
+
+    if (!yearSelect || !archiveList) return;
+
+    // 既存のイベントリスナーをクリア
+    const newYearSelect = yearSelect.cloneNode(true);
+    yearSelect.parentNode.replaceChild(newYearSelect, yearSelect);
+
+    newYearSelect.addEventListener('change', (e) => {
+      const selectedYear = e.target.value;
+      
+      if (!selectedYear) {
+        archiveList.innerHTML = '';
+        return;
+      }
+
+      const months = archiveData[selectedYear];
+      const sortedMonths = Object.keys(months).sort((a, b) => b.localeCompare(a));
+      
+      archiveList.innerHTML = sortedMonths.map(month => {
+        // 修正: アーカイブリンクのパスを確認
+        const archiveLink = `/archive/${selectedYear}${month}/page/1`;
+        // または `/archive/${selectedYear}${month}/` など、実際のルーティングに合わせる
+        
+        return `
+          <li>
+            <a href="${archiveLink}">
+              <span>${parseInt(month)}月</span>
+              <span class="count">(${months[month]}件)</span>
+            </a>
+          </li>
+        `;
+      }).join('');
+    });
+  }
+
+  // 初回実行
+  initArchive();
+
+  // View Transitions対応：ページ遷移後も再実行
+  document.addEventListener('astro:page-load', initArchive);
+})();</script> <div class="main-content"> <div id="filterInfo"> <div class="filter-info"> <strong>タグ: 読書</strong> の記事
+<a href="/" class="clear-filter">フィルタをクリア</a> </div> </div> <main id="content"> <article> <div class="date">2025年10月27日</div> <h2><a href="/article/20251027" class="article-link" data-article-id="20251027" data-filter-type="tag" data-filter-value="読書">読書の秋</a></h2> <div class="meta"> <a href="/category/日常" class="category">日常</a> <div class="tags"> <a href="/tag/読書" class="tag">#読書</a><a href="/tag/図書館" class="tag">#図書館</a> </div> </div> </article> <script type="module">function i(){document.querySelectorAll(".article-link").forEach(e=>{e.addEventListener("click",s=>{sessionStorage.setItem("returnUrl",window.location.pathname);const t=e.getAttribute("data-filter-type"),r=e.getAttribute("data-filter-value");t&&r?(sessionStorage.setItem("filterType",t),sessionStorage.setItem("filterValue",r)):(sessionStorage.removeItem("filterType"),sessionStorage.removeItem("filterValue"))})})}i();document.addEventListener("astro:page-load",i);</script> </main>  </div> </div>  </body></html>
