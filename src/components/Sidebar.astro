@@ -1,7 +1,11 @@
 ---
+import fs from 'fs/promises';
+import path from 'path';
+
 // 記事IDからアーカイブデータを生成
-const response = await fetch(new URL('/articles/list.json', Astro.site || 'http://localhost:4321'));
-const articleIds: string[] = await response.json();
+const listPath = path.join(process.cwd(), 'public/articles/list.json');
+const listData = await fs.readFile(listPath, 'utf-8');
+const articleIds: string[] = JSON.parse(listData);
 
 const archiveData: Record<string, Record<string, number>> = {};
 
@@ -55,14 +59,20 @@ const years = Object.keys(archiveData).sort((a, b) => b.localeCompare(a));
       const months = archiveData[selectedYear];
       const sortedMonths = Object.keys(months).sort((a, b) => b.localeCompare(a));
       
-      archiveList.innerHTML = sortedMonths.map(month => `
-        <li>
-          <a href="/archive/${selectedYear}${month}">
-            <span>${parseInt(month)}月</span>
-            <span class="count">(${months[month]}件)</span>
-          </a>
-        </li>
-      `).join('');
+      archiveList.innerHTML = sortedMonths.map(month => {
+        // 修正: アーカイブリンクのパスを確認
+        const archiveLink = `/archive/${selectedYear}${month}/page/1`;
+        // または `/archive/${selectedYear}${month}/` など、実際のルーティングに合わせる
+        
+        return `
+          <li>
+            <a href="${archiveLink}">
+              <span>${parseInt(month)}月</span>
+              <span class="count">(${months[month]}件)</span>
+            </a>
+          </li>
+        `;
+      }).join('');
     });
   }
 

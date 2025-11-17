@@ -4,10 +4,13 @@ import Header from '../../components/Header.astro';
 import Sidebar from '../../components/Sidebar.astro';
 import ArticleCard from '../../components/ArticleCard.astro';
 import Pagination from '../../components/Pagination.astro';
+import fs from 'fs/promises';
+import path from 'path';
 
 export async function getStaticPaths() {
-  const listResponse = await fetch(new URL('/articles/list.json', 'http://localhost:4321'));
-  const articleIds: string[] = await listResponse.json();
+  const listPath = path.join(process.cwd(), 'public/articles/list.json');
+  const listData = await fs.readFile(listPath, 'utf-8');
+  const articleIds: string[] = JSON.parse(listData);
   
   const articlesPerPage = 4;
   const totalPages = Math.ceil(articleIds.length / articlesPerPage);
@@ -21,8 +24,9 @@ const { page } = Astro.params;
 const currentPage = parseInt(page);
 
 // 記事一覧を取得
-const listResponse = await fetch(new URL('/articles/list.json', Astro.site || 'http://localhost:4321'));
-const articleIds: string[] = await listResponse.json();
+const listPath = path.join(process.cwd(), 'public/articles/list.json');
+const listData = await fs.readFile(listPath, 'utf-8');
+const articleIds: string[] = JSON.parse(listData);
 
 // 記事を読み込む
 const articlesPerPage = 4;
@@ -32,8 +36,9 @@ const idsToShow = articleIds.slice(start, end);
 
 const articles = await Promise.all(
   idsToShow.map(async (id) => {
-    const res = await fetch(new URL(`/articles/${id}.json`, Astro.site || 'http://localhost:4321'));
-    return await res.json();
+    const articlePath = path.join(process.cwd(), `public/articles/${id}.json`);
+    const articleData = await fs.readFile(articlePath, 'utf-8');
+    return JSON.parse(articleData);
   })
 );
 

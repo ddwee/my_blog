@@ -2,10 +2,13 @@
 import Layout from '../../layouts/Layout.astro';
 import Header from '../../components/Header.astro';
 import Sidebar from '../../components/Sidebar.astro';
+import fs from 'fs/promises';
+import path from 'path';
 
 export async function getStaticPaths() {
-  const response = await fetch(new URL('/articles/list.json', 'http://localhost:4321'));
-  const articleIds: string[] = await response.json();
+  const listPath = path.join(process.cwd(), 'public/articles/list.json');
+  const listData = await fs.readFile(listPath, 'utf-8');
+  const articleIds: string[] = JSON.parse(listData);
   
   return articleIds.map(id => ({
     params: { id },
@@ -14,15 +17,14 @@ export async function getStaticPaths() {
 
 //記事データと記事リストの取得
 const { id } = Astro.params;
-const [articleResponse, listResponse] = await Promise.all([
-  fetch(new URL(`/articles/${id}.json`, Astro.site || 'http://localhost:4321')),
-  fetch(new URL('/articles/list.json', Astro.site || 'http://localhost:4321'))
-]);
 
-const [article, articleIds] = await Promise.all([
-  articleResponse.json(),
-  listResponse.json()
-]);
+const articlePath = path.join(process.cwd(), `public/articles/${id}.json`);
+const articleData = await fs.readFile(articlePath, 'utf-8');
+const article = JSON.parse(articleData);
+
+const listPath = path.join(process.cwd(), 'public/articles/list.json');
+const listData = await fs.readFile(listPath, 'utf-8');
+const articleIds: string[] = JSON.parse(listData);
 
 const currentIndex = articleIds.indexOf(id);
 const nextId = currentIndex > 0 ? articleIds[currentIndex - 1] : null;
@@ -32,13 +34,15 @@ let nextArticle = null;
 let prevArticle = null;
 
 if (nextId) {
-  const nextResponse = await fetch(new URL(`/articles/${nextId}.json`, Astro.site || 'http://localhost:4321'));
-  nextArticle = await nextResponse.json();
+  const nextArticlePath = path.join(process.cwd(), `public/articles/${nextId}.json`);
+  const nextArticleData = await fs.readFile(nextArticlePath, 'utf-8');
+  nextArticle = JSON.parse(nextArticleData);
 }
 
 if (prevId) {
-  const prevResponse = await fetch(new URL(`/articles/${prevId}.json`, Astro.site || 'http://localhost:4321'));
-  prevArticle = await prevResponse.json();
+  const prevArticlePath = path.join(process.cwd(), `public/articles/${prevId}.json`);
+  const prevArticleData = await fs.readFile(prevArticlePath, 'utf-8');
+  prevArticle = JSON.parse(prevArticleData);
 }
 ---
 
