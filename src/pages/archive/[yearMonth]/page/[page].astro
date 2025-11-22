@@ -4,36 +4,23 @@ import Header from '../../../../components/Header.astro';
 import Sidebar from '../../../../components/Sidebar.astro';
 import ArticleCard from '../../../../components/ArticleCard.astro';
 import Pagination from '../../../../components/Pagination.astro';
-import fs from 'fs/promises';
-import path from 'path';
+import { getYearMonths, getPostsByYearMonth } from '../../../../utils/articles';
 
 export async function getStaticPaths() {
-  const listPath = path.join(process.cwd(), 'public/articles/list.json');
-  const listData = await fs.readFile(listPath, 'utf-8');
-  const articleIds: string[] = JSON.parse(listData);
-  
-  // 年月ごとに記事をグループ化
-  const yearMonthMap = new Map<string, string[]>();
-  articleIds.forEach(id => {
-    const yearMonth = id.substring(0, 6);
-    if (!yearMonthMap.has(yearMonth)) {
-      yearMonthMap.set(yearMonth, []);
-    }
-    yearMonthMap.get(yearMonth)!.push(id);
-  });
-  
+  const yearMonths = await getYearMonths();
   const articlesPerPage = 4;
   const paths: any[] = [];
   
-  // 各年月のページを生成
-  yearMonthMap.forEach((ids, yearMonth) => {
-    const totalPages = Math.ceil(ids.length / articlesPerPage);
+  for (const yearMonth of yearMonths) {
+    const posts = await getPostsByYearMonth(yearMonth);
+    const totalPages = Math.ceil(posts.length / articlesPerPage);
+    
     for (let i = 1; i <= totalPages; i++) {
       paths.push({
         params: { yearMonth, page: String(i) },
       });
     }
-  });
+  }
   
   return paths;
 }
@@ -41,29 +28,14 @@ export async function getStaticPaths() {
 const { yearMonth, page } = Astro.params;
 const currentPage = parseInt(page);
 
-// 記事一覧を取得
-const listPath = path.join(process.cwd(), 'public/articles/list.json');
-const listData = await fs.readFile(listPath, 'utf-8');
-const articleIds: string[] = JSON.parse(listData);
+const allPosts = await getPostsByYearMonth(yearMonth);
 
-// 該当する年月の記事をフィルタ
-const filteredIds = articleIds.filter(id => id.startsWith(yearMonth));
-
-// ページネーション
 const articlesPerPage = 4;
 const start = (currentPage - 1) * articlesPerPage;
 const end = start + articlesPerPage;
-const idsToShow = filteredIds.slice(start, end);
+const posts = allPosts.slice(start, end);
 
-const articles = await Promise.all(
-  idsToShow.map(async (id) => {
-    const articlePath = path.join(process.cwd(), `public/articles/${id}.json`);
-    const articleData = await fs.readFile(articlePath, 'utf-8');
-    return JSON.parse(articleData);
-  })
-);
-
-const totalPages = Math.ceil(filteredIds.length / articlesPerPage);
+const totalPages = Math.ceil(allPosts.length / articlesPerPage);
 
 // 年月を表示用にフォーマット
 const year = yearMonth.substring(0, 4);
@@ -85,8 +57,8 @@ const month = parseInt(yearMonth.substring(4, 6));
       </div>
       
       <main id="content">
-        {articles.map(article => (
-          <ArticleCard article={article} filterType="archive" filterValue={yearMonth} />
+        {posts.map(post => (
+          <ArticleCard post={post} filterType="archive" filterValue={yearMonth} />
         ))}
       </main>
       

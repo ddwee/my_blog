@@ -4,63 +4,26 @@ import Header from '../../components/Header.astro';
 import Sidebar from '../../components/Sidebar.astro';
 import ArticleCard from '../../components/ArticleCard.astro';
 import Pagination from '../../components/Pagination.astro';
-import fs from 'fs/promises';
-import path from 'path';
+import { getCategories, getPostsByCategory } from '../../utils/articles';
 
 export async function getStaticPaths() {
-  const listPath = path.join(process.cwd(), 'public/articles/list.json');
-  const listData = await fs.readFile(listPath, 'utf-8');
-  const articleIds: string[] = JSON.parse(listData);
-  
-  // 全記事を読み込んでカテゴリを収集
-  const articles = await Promise.all(
-    articleIds.map(async (id) => {
-      const articlePath = path.join(process.cwd(), `public/articles/${id}.json`);
-      const articleData = await fs.readFile(articlePath, 'utf-8');
-      return JSON.parse(articleData);
-    })
-  );
-  
-  // カテゴリのリストを作成
-  const categories = new Set<string>();
-  articles.forEach(article => {
-    if (article.category) {
-      categories.add(article.category);
-    }
-  });
-  
-  return Array.from(categories).map(category => ({
+  const categories = await getCategories();
+  return categories.map(category => ({
     params: { category },
   }));
 }
 
 const { category } = Astro.params;
 
-// 記事一覧を取得
-const listPath = path.join(process.cwd(), 'public/articles/list.json');
-const listData = await fs.readFile(listPath, 'utf-8');
-const articleIds: string[] = JSON.parse(listData);
+const allPosts = await getPostsByCategory(category);
 
-// 全記事を読み込む
-const allArticles = await Promise.all(
-  articleIds.map(async (id) => {
-    const articlePath = path.join(process.cwd(), `public/articles/${id}.json`);
-    const articleData = await fs.readFile(articlePath, 'utf-8');
-    return JSON.parse(articleData);
-  })
-);
-
-// 該当カテゴリの記事をフィルタ
-const filteredArticles = allArticles.filter(article => article.category === category);
-
-// ページネーション
 const articlesPerPage = 4;
 const currentPage = 1;
 const start = 0;
 const end = articlesPerPage;
-const articlesToShow = filteredArticles.slice(start, end);
+const posts = allPosts.slice(start, end);
 
-const totalPages = Math.ceil(filteredArticles.length / articlesPerPage);
+const totalPages = Math.ceil(allPosts.length / articlesPerPage);
 ---
 
 <Layout title={`カテゴリ: ${category} - 私の日記`}>
@@ -78,8 +41,8 @@ const totalPages = Math.ceil(filteredArticles.length / articlesPerPage);
       </div>
       
       <main id="content">
-        {articlesToShow.map(article => (
-          <ArticleCard article={article} filterType="category" filterValue={category} />
+        {posts.map(post => (
+          <ArticleCard post={post} filterType="category" filterValue={category} />
         ))}
       </main>
       

@@ -2,51 +2,42 @@
 import Layout from '../../layouts/Layout.astro';
 import Header from '../../components/Header.astro';
 import Sidebar from '../../components/Sidebar.astro';
-import fs from 'fs/promises';
-import path from 'path';
+import { getPostIds, getPostById } from '../../utils/articles';
 
 export async function getStaticPaths() {
-  const listPath = path.join(process.cwd(), 'public/articles/list.json');
-  const listData = await fs.readFile(listPath, 'utf-8');
-  const articleIds: string[] = JSON.parse(listData);
-  
-  return articleIds.map(id => ({
+  const postIds = await getPostIds();
+  return postIds.map(id => ({
     params: { id },
   }));
 }
 
-//記事データと記事リストの取得
 const { id } = Astro.params;
 
-const articlePath = path.join(process.cwd(), `public/articles/${id}.json`);
-const articleData = await fs.readFile(articlePath, 'utf-8');
-const article = JSON.parse(articleData);
+const entry = await getPostById(id);
+if (!entry) {
+  return Astro.redirect('/404');
+}
 
-const listPath = path.join(process.cwd(), 'public/articles/list.json');
-const listData = await fs.readFile(listPath, 'utf-8');
-const articleIds: string[] = JSON.parse(listData);
+const { Content } = await entry.render();
 
-const currentIndex = articleIds.indexOf(id);
-const nextId = currentIndex > 0 ? articleIds[currentIndex - 1] : null;
-const prevId = currentIndex < articleIds.length - 1 ? articleIds[currentIndex + 1] : null;
+const allPostIds = await getPostIds();
+const currentIndex = allPostIds.indexOf(id);
+const nextId = currentIndex > 0 ? allPostIds[currentIndex - 1] : null;
+const prevId = currentIndex < allPostIds.length - 1 ? allPostIds[currentIndex + 1] : null;
 
-let nextArticle = null;
-let prevArticle = null;
+let nextPost = null;
+let prevPost = null;
 
 if (nextId) {
-  const nextArticlePath = path.join(process.cwd(), `public/articles/${nextId}.json`);
-  const nextArticleData = await fs.readFile(nextArticlePath, 'utf-8');
-  nextArticle = JSON.parse(nextArticleData);
+  nextPost = await getPostById(nextId);
 }
 
 if (prevId) {
-  const prevArticlePath = path.join(process.cwd(), `public/articles/${prevId}.json`);
-  const prevArticleData = await fs.readFile(prevArticlePath, 'utf-8');
-  prevArticle = JSON.parse(prevArticleData);
+  prevPost = await getPostById(prevId);
 }
 ---
 
-<Layout title={`${article.title} - 私の日記`}>
+<Layout title={`${entry.data.title} - 私の日記`}>
   <Header />
   
   <div class="container">
@@ -55,27 +46,28 @@ if (prevId) {
     <div class="main-content">
       <main>
         <article>
-          <div class="date">{article.date}</div>
-          <h2>{article.title}</h2>
+          <div class="date">{entry.data.date}</div>
+          <h2>{entry.data.title}</h2>
           <div class="meta">
-            <a href={`/category/${article.category}`} class="category">{article.category}</a>
-            {article.tags && (
+            <a href={`/category/${entry.data.category}`} class="category">{entry.data.category}</a>
+            {entry.data.tags && (
               <div class="tags">
-                {article.tags.map((tag: string) => (
+                {entry.data.tags.map((tag: string) => (
                   <a href={`/tag/${tag}`} class="tag">#{tag}</a>
                 ))}
               </div>
             )}
           </div>
-          <div class="article-content" set:html={article.content.replace(/\n/g, '<br>')} />
+          <div class="article-content">
+            <Content />
+          </div>
         </article>
 
-        <!-- 前後の記事ナビゲーション + ホームボタン -->
         <nav class="article-nav">
-          {prevArticle ? (
-            <a href={`/article/${prevArticle.id}`} class="article-nav-item prev">
+          {prevPost ? (
+            <a href={`/article/${prevId}`} class="article-nav-item prev">
               <span class="nav-label">← 過去の記事</span>
-              <span class="nav-title">{prevArticle.title}</span>
+              <span class="nav-title">{prevPost.data.title}</span>
             </a>
           ) : (
             <div class="article-nav-item-spacer"></div>
@@ -88,10 +80,10 @@ if (prevId) {
             </svg>
           </a>
 
-          {nextArticle ? (
-            <a href={`/article/${nextArticle.id}`} class="article-nav-item next">
+          {nextPost ? (
+            <a href={`/article/${nextId}`} class="article-nav-item next">
               <span class="nav-label">新しい記事 →</span>
-              <span class="nav-title">{nextArticle.title}</span>
+              <span class="nav-title">{nextPost.data.title}</span>
             </a>
           ) : (
             <div class="article-nav-item-spacer"></div>
@@ -107,15 +99,12 @@ if (prevId) {
     const homeButton = document.getElementById('homeButton');
     if (!homeButton) return;
 
-    // 現在のURLが記事詳細ページの場合
     const currentPath = window.location.pathname;
     if (currentPath.startsWith('/article/')) {
-      // 保存されたURLがあり、それが記事一覧ページの場合のみ使う
       const returnUrl = sessionStorage.getItem('returnUrl');
       if (returnUrl && !returnUrl.startsWith('/article/')) {
         homeButton.setAttribute('href', returnUrl);
       } else {
-        // 記事一覧ページのURLがない場合はトップページに戻す
         homeButton.setAttribute('href', '/');
       }
     }

@@ -4,31 +4,17 @@ import Header from '../components/Header.astro';
 import Sidebar from '../components/Sidebar.astro';
 import ArticleCard from '../components/ArticleCard.astro';
 import Pagination from '../components/Pagination.astro';
-// 追加インポート
-import fs from 'fs/promises';
-import path from 'path';
+import { getSortedPosts } from '../utils/articles';
 
-// 記事一覧を取得（ファイルシステムから直接）
-const listPath = path.join(process.cwd(), 'public/articles/list.json');
-const listData = await fs.readFile(listPath, 'utf-8');
-const articleIds = JSON.parse(listData);
+const allPosts = await getSortedPosts();
 
-// 記事を読み込む
 const articlesPerPage = 4;
 const currentPage = 1;
 const start = 0;
 const end = articlesPerPage;
-const idsToShow = articleIds.slice(start, end);
+const posts = allPosts.slice(start, end);
 
-const articles = await Promise.all(
-  idsToShow.map(async (id) => {
-    const articlePath = path.join(process.cwd(), `public/articles/${id}.json`);
-    const articleData = await fs.readFile(articlePath, 'utf-8');
-    return JSON.parse(articleData);
-  })
-);
-
-const totalPages = Math.ceil(articleIds.length / articlesPerPage);
+const totalPages = Math.ceil(allPosts.length / articlesPerPage);
 ---
 
 <Layout title="私の日記">
@@ -39,8 +25,8 @@ const totalPages = Math.ceil(articleIds.length / articlesPerPage);
     
     <div class="main-content">
       <main id="content">
-        {articles.map(article => (
-          <ArticleCard article={article} />
+        {posts.map(post => (
+          <ArticleCard post={post} />
         ))}
       </main>
       

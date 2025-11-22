@@ -1,27 +1,7 @@
 ---
-import fs from 'fs/promises';
-import path from 'path';
+import { getArchiveData } from '../utils/articles';
 
-// 記事IDからアーカイブデータを生成
-const listPath = path.join(process.cwd(), 'public/articles/list.json');
-const listData = await fs.readFile(listPath, 'utf-8');
-const articleIds: string[] = JSON.parse(listData);
-
-const archiveData: Record<string, Record<string, number>> = {};
-
-articleIds.forEach(id => {
-  const year = id.substring(0, 4);
-  const month = id.substring(4, 6);
-  
-  if (!archiveData[year]) {
-    archiveData[year] = {};
-  }
-  if (!archiveData[year][month]) {
-    archiveData[year][month] = 0;
-  }
-  archiveData[year][month]++;
-});
-
+const archiveData = await getArchiveData();
 const years = Object.keys(archiveData).sort((a, b) => b.localeCompare(a));
 ---
 
@@ -44,7 +24,6 @@ const years = Object.keys(archiveData).sort((a, b) => b.localeCompare(a));
 
     if (!yearSelect || !archiveList) return;
 
-    // 既存のイベントリスナーをクリア
     const newYearSelect = yearSelect.cloneNode(true);
     yearSelect.parentNode.replaceChild(newYearSelect, yearSelect);
 
@@ -60,9 +39,7 @@ const years = Object.keys(archiveData).sort((a, b) => b.localeCompare(a));
       const sortedMonths = Object.keys(months).sort((a, b) => b.localeCompare(a));
       
       archiveList.innerHTML = sortedMonths.map(month => {
-        // 修正: アーカイブリンクのパスを確認
         const archiveLink = `/archive/${selectedYear}${month}/page/1`;
-        // または `/archive/${selectedYear}${month}/` など、実際のルーティングに合わせる
         
         return `
           <li>
@@ -76,9 +53,6 @@ const years = Object.keys(archiveData).sort((a, b) => b.localeCompare(a));
     });
   }
 
-  // 初回実行
   initArchive();
-
-  // View Transitions対応：ページ遷移後も再実行
   document.addEventListener('astro:page-load', initArchive);
 </script>

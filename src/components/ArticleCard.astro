@@ -1,28 +1,26 @@
 ---
+import type { CollectionEntry } from 'astro:content';
+
 interface Props {
-  article: {
-    id: string;
-    date: string;
-    title: string;
-    category: string;
-    tags?: string[];
-    preview: string;
-  };
+  post: CollectionEntry<'articles'>;
   filterType?: string;
   filterValue?: string;
 }
 
-const { article, filterType, filterValue } = Astro.props;
+const { post, filterType, filterValue } = Astro.props;
+
+// IDから.md拡張子を除去
+const postId = post.id.replace(/\.md$/, '');
 ---
 
 <article>
-  <div class="date">{article.date}</div>
-  <h2><a href={`/article/${article.id}`} class="article-link" data-article-id={article.id} data-filter-type={filterType} data-filter-value={filterValue}>{article.title}</a></h2>
+  <div class="date">{post.data.date}</div>
+  <h2><a href={`/article/${postId}`} class="article-link" data-article-id={postId} data-filter-type={filterType} data-filter-value={filterValue}>{post.data.title}</a></h2>
   <div class="meta">
-    <a href={`/category/${article.category}`} class="category">{article.category}</a>
-    {article.tags && (
+    <a href={`/category/${post.data.category}`} class="category">{post.data.category}</a>
+    {post.data.tags && (
       <div class="tags">
-        {article.tags.map(tag => (
+        {post.data.tags.map(tag => (
           <a href={`/tag/${tag}`} class="tag">#{tag}</a>
         ))}
       </div>
@@ -34,10 +32,8 @@ const { article, filterType, filterValue } = Astro.props;
   function initArticleLinks() {
     document.querySelectorAll('.article-link').forEach(link => {
       link.addEventListener('click', (e) => {
-        // 現在のURLを保存
         sessionStorage.setItem('returnUrl', window.location.pathname);
         
-        // フィルタ情報も保存
         const filterType = link.getAttribute('data-filter-type');
         const filterValue = link.getAttribute('data-filter-value');
         
