@@ -513,3 +513,44 @@ header h1:hover {
   text-shadow: 0 0 15px rgba(212, 165, 116, 0.9);
   filter: brightness(1.2);
 }
+
+.article-content {
+  line-height: 1.7;
+}
+
+.article-content figure {
+  text-align: center;
+  margin: 2.5rem 0;
+}
+
+.article-content figcaption {
+  text-align: center;
+  font-size: 0.9em;
+  color: #b89968;
+  margin-top: 0.8em;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.article-content img {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* マークダウンで生成される画像にも適用 */
+.article-content p:has(> img) {
+  text-align: center;
+}
+
+.article-content p:has(> img) + p em {
+  display: block;
+  text-align: center;
+  font-size: 0.9em;
+  color: #b89968;
+  margin-top: 0.5em;
+  font-style: italic;
+}
