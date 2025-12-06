@@ -1,0 +1,604 @@
+---
+interface Props {
+  youtubeUrl?: string;
+  threshold?: number;
+}
+
+const { 
+  youtubeUrl = "https://www.youtube.com/",
+  threshold = 0.6 
+} = Astro.props;
+---
+
+<div id="zipper-container" data-youtube-url={youtubeUrl} data-threshold={threshold}>
+  <!-- 下層: YouTube -->
+  <div id="layer-youtube">
+    <div id="yt-bg-pattern"></div>
+    <div id="yt-content">
+      <div class="yt-icon-wrapper">
+        <div class="yt-triangle"></div>
+      </div>
+      <h2 class="yt-text">SUBSCRIBE</h2>
+      <p class="yt-sub-text">Welcome to the Channel</p>
+    </div>
+  </div>
+
+  <!-- 分割レイヤー -->
+  <div id="part-bottom-left" class="blog-part"></div>
+  <div id="part-top-right" class="blog-part"></div>
+
+  <!-- トリガー -->
+  <div id="tear-trigger">
+    <div id="fold-visual"></div>
+  </div>
+</div>
+
+<style is:global>
+  /* --- 基本設定 --- */
+  
+  :root {
+    /* スクロールバーの幅をJSで計算してここにセットします */
+    --zipper-scrollbar-width: 0px;
+  }
+
+  /* Zipperモード有効時の強制スタイル */
+  body.zipper-active {
+    overflow: hidden !important;
+    user-select: none !important;
+    cursor: grabbing !important;
+  }
+
+  /* ドラッグ中は元のコンテンツを非表示にする */
+  body.zipper-active > *:not(#zipper-container):not(script):not(header) {
+    visibility: hidden !important;
+  }
+  
+  /* --- コンテンツ幅の再現用ラッパー --- */
+  .zipper-body-clone {
+    /* global.cssの body スタイルを再現 */
+    max-width: 1000px;
+    margin: 0px auto;
+    padding: 20px;
+    font-family: sans-serif;
+    line-height: 1.6;
+    color: #e0d5c7;
+    background-color: transparent; 
+    box-sizing: border-box;
+    min-height: 100vh;
+    
+    /* コンテンツの配置 */
+    display: block;
+  }
+
+  /* --- コンテナの基本設定 --- */
+  #zipper-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    pointer-events: none; 
+    display: block;
+  }
+
+  #tear-trigger {
+    pointer-events: auto; 
+  }
+
+  body.zipper-active #zipper-container {
+    pointer-events: auto;
+  }
+
+  /* --- 下層: YouTube --- */
+  #layer-youtube {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, #cc0000 0%, #800000 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    overflow: hidden;
+    
+    /* 初期状態は非表示 */
+    visibility: hidden;
+  }
+
+  body.zipper-active #layer-youtube {
+    visibility: visible;
+  }
+
+  #yt-bg-pattern {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px);
+    background-size: 30px 30px;
+    opacity: 0.3;
+  }
+
+  #yt-content {
+    position: relative;
+    text-align: center;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.1s;
+    color: #fff;
+    z-index: 2;
+  }
+
+  .yt-icon-wrapper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 90px;
+    height: 64px;
+    background-color: #fff;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  }
+
+  .yt-triangle {
+    width: 0;
+    height: 0;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-left: 18px solid #cc0000;
+    margin-left: 4px;
+  }
+
+  .yt-text {
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-family: sans-serif;
+    margin: 0;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+
+  .yt-sub-text {
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+    margin-top: 8px;
+    font-family: serif;
+  }
+
+  /* --- 上層: ブログ (分割パーツ) --- */
+  .blog-part {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw; /* 100%ではなく100vwを使用 */
+    height: 100%;
+    background-color: #1a1612; 
+    z-index: 10;
+    will-change: clip-path;
+    overflow-y: auto; 
+    
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    visibility: hidden; 
+  }
+
+  body.zipper-active .blog-part {
+    visibility: visible;
+  }
+  
+  .blog-part::-webkit-scrollbar {
+    display: none;
+  }
+
+  #part-top-right {
+    z-index: 12;
+    filter: drop-shadow(-8px 8px 12px rgba(0, 0, 0, 0.8));
+  }
+  
+  #part-bottom-left {
+    z-index: 11;
+    filter: drop-shadow(4px -4px 8px rgba(0, 0, 0, 0.6));
+  }
+
+  /* --- トリガー & 三角形の折り目 --- */
+  #tear-trigger {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 60px;
+    height: 60px;
+    z-index: 50;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  /* 修正: 普通の三角形 */
+  #fold-visual {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 60px 60px 0 0; /* サイズはトリガー領域に合わせる */
+    border-color: #840000 transparent transparent transparent; /* 下層レイヤーと同じ赤色 */
+    transition: transform 0.2s ease;
+    pointer-events: none;
+  }
+  
+  #tear-trigger:hover #fold-visual {
+    transform: scale(1.1);
+  }
+
+  body.is-dragging #tear-trigger {
+    cursor: grabbing;
+  }
+
+  /* アニメーション */
+  .animate-fly-tr {
+    transition: transform 0.8s cubic-bezier(0.5, 0, 0.2, 1), opacity 0.8s ease;
+    transform: translate(30%, -30%);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .animate-fly-bl {
+    transition: transform 0.8s cubic-bezier(0.5, 0, 0.2, 1), opacity 0.8s ease;
+    transform: translate(-30%, 30%);
+    opacity: 0;
+    pointer-events: none;
+  }
+</style>
+
+<script>
+  let cleanupFn: (() => void) | null = null;
+  let originalScrollTop = 0;
+
+  // ID削除ヘルパー
+  const stripIds = (node: Element) => {
+    if (node.id) node.removeAttribute('id');
+    if (node.children) {
+      Array.from(node.children).forEach(child => stripIds(child));
+    }
+  };
+
+  // Script削除ヘルパー
+  const removeScripts = (node: Element) => {
+    const scripts = node.querySelectorAll('script');
+    scripts.forEach(s => s.remove());
+  };
+
+  // リセット処理を関数化（ページロード時などに再利用可能にする）
+  const resetZipperState = () => {
+    // アクティブクラスの削除
+    document.body.classList.remove('zipper-active');
+    document.body.classList.remove('is-dragging');
+    
+    // スクロール位置のリセット（必要であれば）
+    // window.scrollTo(0, 0); 
+    
+    // アニメーションクラスなどの削除
+    const layerBL = document.getElementById('part-bottom-left');
+    const layerTR = document.getElementById('part-top-right');
+    const ytContent = document.getElementById('yt-content');
+    
+    if (layerBL && layerTR) {
+        layerBL.style.transform = '';
+        layerTR.style.transform = '';
+        layerTR.classList.remove('animate-fly-tr');
+        layerBL.classList.remove('animate-fly-bl');
+        
+        // 中身を空にする（メモリリーク防止 & 状態リセット）
+        layerBL.innerHTML = '';
+        layerTR.innerHTML = '';
+    }
+    
+    if (ytContent) {
+        ytContent.style.opacity = '0';
+        ytContent.style.transform = 'scale(0.9)';
+    }
+  };
+
+  function initZipper() {
+    // 既存の状態をリセット
+    resetZipperState();
+    
+    if (cleanupFn) cleanupFn();
+
+    const container = document.getElementById('zipper-container');
+    if (!container) return;
+
+    const CONFIG = {
+      youtubeUrl: container.dataset.youtubeUrl || "https://www.youtube.com/",
+      threshold: parseFloat(container.dataset.threshold || "0.6"),
+      tearGap: 60,
+      transitionLen: 150,
+      jaggedness: 10,
+      density: 20
+    };
+
+    const layerBL = document.getElementById('part-bottom-left') as HTMLElement;
+    const layerTR = document.getElementById('part-top-right') as HTMLElement;
+    const trigger = document.getElementById('tear-trigger') as HTMLElement;
+    const ytContent = document.getElementById('yt-content') as HTMLElement;
+
+    // DOM複製ロジックはドラッグ開始時に移動しました（リサイズ対応等のため）
+
+    // --- 双方向スクロール同期 ---
+    let isSyncingBL = false;
+    let isSyncingTR = false;
+
+    const onScrollBL = () => {
+      if (isSyncingBL) {
+        isSyncingBL = false;
+        return;
+      }
+      isSyncingTR = true;
+      layerTR.scrollTop = layerBL.scrollTop;
+    };
+
+    const onScrollTR = () => {
+      if (isSyncingTR) {
+        isSyncingTR = false;
+        return;
+      }
+      isSyncingBL = true;
+      layerBL.scrollTop = layerTR.scrollTop;
+    };
+
+    // --- 破れ目ロジック ---
+    let basePoints: {x: number, y: number, dist: number}[] = [];
+    let maxDist = 0;
+    let currentProgressDist = 0;
+    let isDragging = false;
+    let startX = 0, startY = 0;
+
+    const generatePathPoints = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      maxDist = Math.sqrt(w*w + h*h);
+      
+      const steps = Math.ceil(maxDist / CONFIG.density);
+      basePoints = [];
+      basePoints.push({x: 0, y: 0, dist: 0});
+
+      for (let i = 1; i < steps; i++) {
+          const t = i / steps;
+          const bx = t * w;
+          const by = t * h;
+          const noise = (Math.random() - 0.5) * CONFIG.jaggedness * 2;
+          const d = t * maxDist;
+          basePoints.push({ x: bx + noise, y: by - noise, dist: d });
+      }
+      basePoints.push({x: w, y: h, dist: maxDist});
+    };
+
+    const updateZipper = (progressDist: number) => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      let trPoints = "";
+      let blPoints = [];
+
+      const angle = Math.atan2(h, w);
+      const perpAngle = angle - Math.PI / 2;
+      const unitDX = Math.cos(perpAngle);
+      const unitDY = Math.sin(perpAngle);
+
+      for (let i = 0; i < basePoints.length; i++) {
+          const p = basePoints[i];
+          let currentGap = 0;
+
+          if (p.dist < progressDist) {
+              currentGap = CONFIG.tearGap;
+          } else if (p.dist < progressDist + CONFIG.transitionLen) {
+              const ratio = 1 - ((p.dist - progressDist) / CONFIG.transitionLen);
+              currentGap = CONFIG.tearGap * ratio;
+          } else {
+              currentGap = 0;
+          }
+
+          const offX = unitDX * currentGap;
+          const offY = unitDY * currentGap;
+
+          trPoints += `${p.x + offX}px ${p.y + offY}px, `;
+          blPoints.push(`${p.x - offX}px ${p.y - offY}px`);
+      }
+
+      const trPoly = `polygon(${trPoints} ${w}px ${h}px, ${w}px 0px, 0px 0px)`;
+      const blPoly = `polygon(0px 0px, 0px ${h}px, ${w}px ${h}px, ${blPoints.reverse().join(', ')})`;
+
+      layerTR.style.clipPath = trPoly;
+      layerBL.style.clipPath = blPoly;
+    };
+
+    generatePathPoints();
+    updateZipper(0);
+
+    // --- イベントハンドラ ---
+    const onStart = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault();
+      
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.documentElement.style.setProperty('--zipper-scrollbar-width', `${scrollbarWidth}px`);
+
+      generatePathPoints();
+      updateZipper(0);
+
+      // --- DOM複製 (Header + Container) ---
+      const header = document.querySelector('header');
+      const mainContainer = document.querySelector('.container');
+      let combinedContent = '';
+
+      if (header) {
+        const cloneH = header.cloneNode(true) as HTMLElement;
+        stripIds(cloneH);
+        removeScripts(cloneH);
+        combinedContent += cloneH.outerHTML;
+      }
+
+      if (mainContainer) {
+        const cloneC = mainContainer.cloneNode(true) as HTMLElement;
+        stripIds(cloneC);
+        removeScripts(cloneC);
+        combinedContent += cloneC.outerHTML;
+      }
+      
+      const wrappedContent = `<div class="zipper-body-clone">${combinedContent}</div>`;
+      layerBL.innerHTML = wrappedContent;
+      layerTR.innerHTML = wrappedContent;
+
+      originalScrollTop = window.scrollY || document.documentElement.scrollTop;
+      isDragging = true;
+      
+      document.body.classList.add('zipper-active');
+      document.body.classList.add('is-dragging');
+      
+      layerBL.scrollTop = originalScrollTop;
+      layerTR.scrollTop = originalScrollTop;
+
+      layerTR.classList.remove('animate-fly-tr');
+      layerBL.classList.remove('animate-fly-bl');
+      layerTR.style.transform = '';
+      layerBL.style.transform = '';
+      layerTR.style.opacity = '';
+      layerBL.style.opacity = '';
+
+      const p = getPointer(e);
+      startX = p.x;
+      startY = p.y;
+    };
+
+    const onMove = (e: MouseEvent | TouchEvent) => {
+      if (!isDragging) return;
+      if(e.cancelable) e.preventDefault();
+      
+      const p = getPointer(e);
+      const dist = Math.sqrt(p.x*p.x + p.y*p.y); 
+      currentProgressDist = dist;
+      updateZipper(currentProgressDist);
+
+      const progressRatio = Math.min(dist / (maxDist * CONFIG.threshold), 1);
+      ytContent.style.opacity = progressRatio.toString();
+      ytContent.style.transform = `scale(${0.9 + (progressRatio * 0.1)})`;
+    };
+
+    const onEnd = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      document.body.classList.remove('is-dragging');
+
+      if (currentProgressDist > maxDist * CONFIG.threshold) {
+          finishAnimation();
+      } else {
+          resetAnimation();
+      }
+    };
+
+    const getPointer = (e: MouseEvent | TouchEvent) => {
+      return (e as TouchEvent).touches ? 
+        {x: (e as TouchEvent).touches[0].clientX, y: (e as TouchEvent).touches[0].clientY} : 
+        {x: (e as MouseEvent).clientX, y: (e as MouseEvent).clientY};
+    };
+
+    const finishAnimation = () => {
+      const start = currentProgressDist;
+      const end = maxDist + CONFIG.transitionLen;
+      const duration = 400;
+      const startTime = performance.now();
+
+      function step(time: number) {
+          const elapsed = time - startTime;
+          const t = Math.min(elapsed / duration, 1);
+          const ease = 1 - (1 - t) * (1 - t);
+          currentProgressDist = start + (end - start) * ease;
+          updateZipper(currentProgressDist);
+
+          if (t < 1) {
+              requestAnimationFrame(step);
+          } else {
+              layerTR.classList.add('animate-fly-tr');
+              layerBL.classList.add('animate-fly-bl');
+              setTimeout(() => {
+                  window.location.href = CONFIG.youtubeUrl;
+              }, 800);
+          }
+      }
+      requestAnimationFrame(step);
+    };
+
+    const resetAnimation = () => {
+      const start = currentProgressDist;
+      const end = 0;
+      const duration = 300;
+      const startTime = performance.now();
+
+      function step(time: number) {
+          const elapsed = time - startTime;
+          const t = Math.min(elapsed / duration, 1);
+          const ease = 1 - (1 - t) * (1 - t);
+          currentProgressDist = start + (end - start) * ease;
+          updateZipper(currentProgressDist);
+          ytContent.style.opacity = '0';
+
+          if (t < 1) {
+              requestAnimationFrame(step);
+          } else {
+            document.body.classList.remove('zipper-active');
+            window.scrollTo(0, originalScrollTop);
+          }
+      }
+      requestAnimationFrame(step);
+    };
+
+    const onResize = () => {
+        if (document.body.classList.contains('zipper-active')) {
+            generatePathPoints();
+            updateZipper(currentProgressDist);
+        }
+    };
+
+    trigger.addEventListener('mousedown', onStart);
+    trigger.addEventListener('touchstart', onStart, {passive: false});
+    window.addEventListener('mousemove', onMove, {passive: false});
+    window.addEventListener('touchmove', onMove, {passive: false});
+    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('touchend', onEnd);
+    window.addEventListener('resize', onResize);
+
+    cleanupFn = () => {
+      document.body.classList.remove('zipper-active');
+      trigger.removeEventListener('mousedown', onStart);
+      trigger.removeEventListener('touchstart', onStart);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('touchend', onEnd);
+      window.removeEventListener('resize', onResize);
+      layerBL.removeEventListener('scroll', onScrollBL);
+      layerTR.removeEventListener('scroll', onScrollTR);
+    };
+  }
+
+  // 初期化とリセットのイベントリスナー
+  
+  // AstroのView Transitionsによるページロード時
+  document.addEventListener('astro:page-load', () => {
+    // ページ遷移直後は強制リセット
+    resetZipperState(); 
+    requestAnimationFrame(() => {
+        initZipper();
+    });
+  });
+
+  // ブラウザのbfcache（戻るボタン）からの復帰時
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      resetZipperState();
+    }
+  });
+
+</script>

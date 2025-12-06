@@ -4,6 +4,9 @@ import { ClientRouter } from "astro:transitions";
 // CSSをインポート
 import '../../public/styles/global.css';
 
+// ZipperEffectをインポート
+import ZipperEffect from '../components/ZipperEffect.astro';
+
 interface Props {
   title: string;
 }
@@ -21,6 +24,14 @@ const { title } = Astro.props;
   <title>{title}</title>
 </head>
 <body>
+  <!-- ページコンテンツ -->
   <slot />
+
+  <!-- 
+    全ページ共通のエフェクトとして配置 
+    ClientRouterを使っている場合、astro:page-loadイベントで
+    新しいページのDOMを取り込んで再初期化されます。
+  -->
+  <ZipperEffect youtubeUrl="https://www.youtube.com/" />
 </body>
 </html>
